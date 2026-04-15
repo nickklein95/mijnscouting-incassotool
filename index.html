@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEPA PAIN 008.001.02 Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <h1>SEPA incasso generator</h1>
+      <p>
+        Upload het termijnenbestand zoals geexporteerd vanuit Mijn Scouting, controleer de gevonden transacties en download een XML-bestand welke geupload kan worden bij je bank. Deze pagina draait volledig lokaal, je gegevens worden niet opgeslagen.
+      </p>
+    </section>
+
+    <div class="grid">
+      <section class="card" id="inputCard">
+        <h2>Invoer</h2>
+        <div class="stack">
+          <label>
+            Excel-bestand
+            <input id="fileInput" type="file" accept=".xlsx,.xls">
+          </label>
+
+          <label>
+            Incassodatum
+            <input id="collectionDate" type="date">
+          </label>
+
+          <label>
+            Bestandsnaamvoorvoegsel
+            <input id="fileNamePrefix" type="text" value="SEPA-DD">
+          </label>
+
+          <button id="generateBtn" disabled>XML genereren</button>
+          <button id="downloadBtn" class="secondary" disabled>XML downloaden</button>
+          <a id="downloadLink" class="download" hidden download aria-hidden="true"></a>
+          <p id="status" class="message">Selecteer een Excel-bestand om te beginnen.</p>
+          <p class="helper">
+            De pagina verwacht kolommen die overeenkomen met het aangeleverde werkboek, waaronder
+            `IBAN Debiteur`, `Mandaat Id`, `Openstaand bedrag`, `Type reeks` en `IncassantenId`.
+          </p>
+          <p class="pill">Debiteur-BIC wordt waar mogelijk afgeleid uit Nederlandse IBAN's.</p>
+        </div>
+      </section>
+
+      <section class="card preview-card" id="previewCard">
+        <h2>Voorbeeld</h2>
+        <div class="meta">
+          <div class="stat">
+            <strong id="txCount">0</strong>
+            <span>Transacties</span>
+          </div>
+          <div class="stat">
+            <strong id="ctrlSum">EUR 0.00</strong>
+            <span>Controletotaal</span>
+          </div>
+          <div class="stat">
+            <strong id="groupCount">0</strong>
+            <span>Reeks-groepen</span>
+          </div>
+        </div>
+
+        <div class="table-wrap" id="previewTableWrap" style="margin-top: 18px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Debiteur</th>
+                <th>IBAN</th>
+                <th>Bedrag</th>
+                <th>Omschrijving</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody">
+              <tr><td colspan="4">Geen bestand geladen.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="bic-list.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
