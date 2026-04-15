@@ -2,6 +2,10 @@
 
 Statische browser-app om een Excel-export met incassoregels om te zetten naar een SEPA `pain.008.001.02` XML-bestand.
 
+Live versie:
+
+- [mijnscouting-incassotool.pages.dev](https://mijnscouting-incassotool.pages.dev/)
+
 ## Bestanden
 
 - [index.html](/Users/nickklein/Documents/SOL-incasso/index.html): pagina-structuur
