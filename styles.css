@@ -128,6 +128,12 @@ label {
   background: linear-gradient(180deg, rgba(255, 250, 242, 1), rgba(240, 248, 243, 0.95));
 }
 
+.upload-trigger.is-dragover {
+  transform: translateY(-1px);
+  border-color: rgba(31, 107, 82, 0.72);
+  background: linear-gradient(180deg, rgba(247, 255, 250, 1), rgba(227, 244, 236, 0.98));
+}
+
 .upload-trigger__icon {
   width: 84px;
   height: 84px;

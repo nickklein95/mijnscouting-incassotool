@@ -12,7 +12,7 @@
     <section class="hero">
       <h1>SEPA incasso generator</h1>
       <p>
-        Upload het termijnenbestand zoals geexporteerd vanuit Mijn Scouting, controleer de gevonden transacties en download een XML-bestand welke geupload kan worden bij je bank. Deze pagina draait volledig lokaal, je gegevens worden niet opgeslagen.
+        Upload het termijnenbestand zoals geëxporteerd vanuit Mijn Scouting, controleer de gevonden transacties en download een XML-bestand welke geüpload kan worden bij je bank. Deze pagina draait volledig lokaal in je browser, je gegevens worden niet opgeslagen. Volledig AVG-proof!
       </p>
     </section>
 
@@ -21,10 +21,10 @@
         <h2>Invoer</h2>
         <div class="stack">
           <input id="fileInput" class="visually-hidden" type="file" accept=".xlsx,.xls">
-          <label for="fileInput" class="upload-trigger">
+          <label for="fileInput" id="uploadTrigger" class="upload-trigger">
             <img src="upload-icon.svg" alt="" class="upload-trigger__icon">
             <span class="upload-trigger__title">Excel-bestand kiezen</span>
-            <span class="upload-trigger__text">Klik op het icoon om een `.xlsx`-bestand te selecteren.</span>
+            <span class="upload-trigger__text">Klik op het icoon of sleep een `.xlsx`-bestand hierheen om te beginnen.</span>
             <span id="selectedFileName" class="upload-trigger__filename">Geen bestand geselecteerd.</span>
           </label>
 

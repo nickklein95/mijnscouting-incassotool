@@ -36,6 +36,7 @@ const els = {
   previewCard: document.getElementById("previewCard"),
   previewTableWrap: document.getElementById("previewTableWrap"),
   fileInput: document.getElementById("fileInput"),
+  uploadTrigger: document.getElementById("uploadTrigger"),
   selectedFileName: document.getElementById("selectedFileName"),
   collectionDate: document.getElementById("collectionDate"),
   fileNamePrefix: document.getElementById("fileNamePrefix"),
@@ -66,36 +67,38 @@ requestAnimationFrame(syncPreviewHeight);
 
 els.fileInput.addEventListener("change", async (event) => {
   const [file] = event.target.files;
-  resetDownload();
   if (!file) {
     resetState();
     event.target.value = "";
     return;
   }
+  await handleSelectedFile(file);
+  event.target.value = "";
+});
 
-  setSelectedFileName(file.name);
+for (const eventName of ["dragenter", "dragover"]) {
+  els.uploadTrigger.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    els.uploadTrigger.classList.add("is-dragover");
+  });
+}
 
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json(worksheet, {
-      defval: "",
-      raw: false,
-      dateNF: "dd-mm-yyyy",
-    });
+for (const eventName of ["dragleave", "dragend", "drop"]) {
+  els.uploadTrigger.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    if (eventName === "dragleave" && els.uploadTrigger.contains(event.relatedTarget)) {
+      return;
+    }
+    els.uploadTrigger.classList.remove("is-dragover");
+  });
+}
 
-    hydrateFromRows(rows);
-  } catch (error) {
-    resetState();
-    setStatus(
-      error.message || "Het werkboek kon niet worden gelezen.",
-      "error",
-    );
-  } finally {
-    event.target.value = "";
+els.uploadTrigger.addEventListener("drop", async (event) => {
+  const [file] = event.dataTransfer?.files || [];
+  if (!file) {
+    return;
   }
+  await handleSelectedFile(file);
 });
 
 els.generateBtn.addEventListener("click", () => {
@@ -680,6 +683,31 @@ function setSelectedFileName(name) {
     return;
   }
   els.selectedFileName.textContent = name;
+}
+
+async function handleSelectedFile(file) {
+  resetDownload();
+  setSelectedFileName(file.name);
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, {
+      defval: "",
+      raw: false,
+      dateNF: "dd-mm-yyyy",
+    });
+
+    hydrateFromRows(rows);
+  } catch (error) {
+    resetState();
+    setStatus(
+      error.message || "Het werkboek kon niet worden gelezen.",
+      "error",
+    );
+  }
 }
 
 function syncPreviewHeight() {
