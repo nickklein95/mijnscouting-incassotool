@@ -36,6 +36,7 @@ const els = {
   previewCard: document.getElementById("previewCard"),
   previewTableWrap: document.getElementById("previewTableWrap"),
   fileInput: document.getElementById("fileInput"),
+  selectedFileName: document.getElementById("selectedFileName"),
   collectionDate: document.getElementById("collectionDate"),
   fileNamePrefix: document.getElementById("fileNamePrefix"),
   generateBtn: document.getElementById("generateBtn"),
@@ -68,8 +69,11 @@ els.fileInput.addEventListener("change", async (event) => {
   resetDownload();
   if (!file) {
     resetState();
+    event.target.value = "";
     return;
   }
+
+  setSelectedFileName(file.name);
 
   try {
     const arrayBuffer = await file.arrayBuffer();
@@ -89,6 +93,8 @@ els.fileInput.addEventListener("change", async (event) => {
       error.message || "Het werkboek kon niet worden gelezen.",
       "error",
     );
+  } finally {
+    event.target.value = "";
   }
 });
 
@@ -194,6 +200,7 @@ function resetState() {
     '<tr><td colspan="4">Geen bestand geladen.</td></tr>';
   els.txCount.textContent = "0";
   els.ctrlSum.textContent = "EUR 0.00";
+  setSelectedFileName("");
   resetDownload();
   setStatus("Selecteer een Excel-bestand om te beginnen.", "ok");
   syncPreviewHeight();
@@ -662,6 +669,17 @@ function setStatus(message, kind) {
   els.status.textContent = message;
   els.status.className = `message${kind === "error" ? " error" : kind === "warn" ? " warn" : ""}`;
   syncPreviewHeight();
+}
+
+function setSelectedFileName(name) {
+  if (!els.selectedFileName) {
+    return;
+  }
+  if (!name) {
+    els.selectedFileName.textContent = "Geen bestand geselecteerd.";
+    return;
+  }
+  els.selectedFileName.textContent = name;
 }
 
 function syncPreviewHeight() {

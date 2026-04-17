@@ -20,9 +20,12 @@
       <section class="card" id="inputCard">
         <h2>Invoer</h2>
         <div class="stack">
-          <label>
-            Excel-bestand
-            <input id="fileInput" type="file" accept=".xlsx,.xls">
+          <input id="fileInput" class="visually-hidden" type="file" accept=".xlsx,.xls">
+          <label for="fileInput" class="upload-trigger">
+            <img src="upload-icon.svg" alt="" class="upload-trigger__icon">
+            <span class="upload-trigger__title">Excel-bestand kiezen</span>
+            <span class="upload-trigger__text">Klik op het icoon om een `.xlsx`-bestand te selecteren.</span>
+            <span id="selectedFileName" class="upload-trigger__filename">Geen bestand geselecteerd.</span>
           </label>
 
           <label>
@@ -83,7 +86,7 @@
     </div>
 
     <footer class="footer">
-      <p>&copy; 2026 Nick Klein - Scouting Menkema. Alle rechten voorbehouden.</p>
+      <p>&copy; 2026 Nick Klein - Scouting Menkema Uithuizen. Alle rechten voorbehouden.</p>
     </footer>
   </main>
 
