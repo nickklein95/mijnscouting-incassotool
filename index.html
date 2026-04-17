@@ -14,7 +14,6 @@
       <p>
         Upload het termijnenbestand zoals geexporteerd vanuit Mijn Scouting, controleer de gevonden transacties en download een XML-bestand welke geupload kan worden bij je bank. Deze pagina draait volledig lokaal, je gegevens worden niet opgeslagen.
       </p>
-      <p>Meer info over dit project vind je op <a href="https://github.com/nickklein95/mijnscouting-incassotool">GitHub</a>.</p>
     </section>
 
     <div class="grid">
@@ -41,10 +40,14 @@
           <a id="downloadLink" class="download" hidden download aria-hidden="true"></a>
           <p id="status" class="message">Selecteer een Excel-bestand om te beginnen.</p>
           <p class="helper">
-            De pagina verwacht kolommen die overeenkomen met het aangeleverde werkboek, waaronder
-            `IBAN Debiteur`, `Mandaat Id`, `Openstaand bedrag`, `Type reeks` en `IncassantenId`.
+            De tool verwacht kolommen zoals uit de export van het rapport "Termijnen voor Incasso deze maand", met optie "Alleen Details" in xlsx formaat.
           </p>
-          <p class="pill">Debiteur-BIC wordt waar mogelijk afgeleid uit Nederlandse IBAN's.</p>
+          <p class="helper">
+            Meer documentatie kun je vinden op <a href="https://github.com/nickklein95/mijnscouting-incassotool">GitHub</a>. 
+          </p>
+          <p class="helper">
+            Vragen kunnen gesteld worden via de <a href="mailto:helpdesk@scouting.nl">helpdesk van scouting nederland</a>
+          </p>
         </div>
       </section>
 
@@ -58,10 +61,6 @@
           <div class="stat">
             <strong id="ctrlSum">EUR 0.00</strong>
             <span>Controletotaal</span>
-          </div>
-          <div class="stat">
-            <strong id="groupCount">0</strong>
-            <span>Reeks-groepen</span>
           </div>
         </div>
 
