@@ -1,4 +1,18 @@
 const BANK_TO_BIC = (typeof BIC_LIST !== "undefined" && BIC_LIST) || {};
+const DEFAULT_PAIN_FORMAT = "pain.008.001.08";
+
+const PAIN_FORMATS = {
+  "pain.008.001.08": {
+    id: "pain.008.001.08",
+    namespace: "urn:iso:std:iso:20022:tech:xsd:pain.008.001.08",
+    bicTag: "BICFI",
+  },
+  "pain.008.001.02": {
+    id: "pain.008.001.02",
+    namespace: "urn:iso:std:iso:20022:tech:xsd:pain.008.001.02",
+    bicTag: "BIC",
+  },
+};
 
 const REQUIRED_FIELDS = {
   creditorIban: "IBAN Scouting Groep",
@@ -40,6 +54,7 @@ const els = {
   selectedFileName: document.getElementById("selectedFileName"),
   collectionDate: document.getElementById("collectionDate"),
   fileNamePrefix: document.getElementById("fileNamePrefix"),
+  painFormat: document.getElementById("painFormat"),
   generateBtn: document.getElementById("generateBtn"),
   downloadBtn: document.getElementById("downloadBtn"),
   downloadLink: document.getElementById("downloadLink"),
@@ -108,6 +123,7 @@ els.generateBtn.addEventListener("click", () => {
     const batchDate = formatIsoDate(createdAt);
     const batchTime = formatTimeForFileName(createdAt);
     const prefix = (els.fileNamePrefix.value || "SEPA-DD").trim() || "SEPA-DD";
+    const painFormat = getPainFormat();
     state.xml = xml;
     state.fileName = `${prefix}${batchDate}-${batchTime}.xml`;
     const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
@@ -118,7 +134,7 @@ els.generateBtn.addEventListener("click", () => {
     els.downloadLink.textContent = "";
     els.downloadBtn.disabled = false;
     setStatus(
-      `XML succesvol gegenereerd.\nBestandsnaam: ${state.fileName}`,
+      `XML succesvol gegenereerd.\nFormaat: ${painFormat.id}\nBestandsnaam: ${state.fileName}`,
       "ok",
     );
   } catch (error) {
@@ -443,6 +459,7 @@ function buildXml(createdAt = new Date()) {
     "MsgId",
     FIELD_LIMITS.messageId,
   );
+  const painFormat = getPainFormat();
 
   const transactions = state.transactions.map((tx) => ({
     ...tx,
@@ -460,9 +477,10 @@ function buildXml(createdAt = new Date()) {
     creditorName,
     localInstrument,
     transactions,
+    painFormat,
   });
 
-  return `<?xml version="1.0" encoding="UTF-8" ?>\n<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n  <CstmrDrctDbtInitn>\n    <GrpHdr>\n      <MsgId>${xml(messageId)}</MsgId>\n      <CreDtTm>${xml(formatIsoDateTime(createdAt))}</CreDtTm>\n      <NbOfTxs>${xml(txCount)}</NbOfTxs>\n      <CtrlSum>${xml(ctrlSum)}</CtrlSum>\n      <InitgPty>\n        <Nm>${xml(initiatingParty)}</Nm>\n      </InitgPty>\n    </GrpHdr>\n${pmtInfXml}\n  </CstmrDrctDbtInitn>\n</Document>\n`;
+  return `<?xml version="1.0" encoding="UTF-8" ?>\n<Document xmlns="${xml(painFormat.namespace)}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n  <CstmrDrctDbtInitn>\n    <GrpHdr>\n      <MsgId>${xml(messageId)}</MsgId>\n      <CreDtTm>${xml(formatIsoDateTime(createdAt))}</CreDtTm>\n      <NbOfTxs>${xml(txCount)}</NbOfTxs>\n      <CtrlSum>${xml(ctrlSum)}</CtrlSum>\n      <InitgPty>\n        <Nm>${xml(initiatingParty)}</Nm>\n      </InitgPty>\n    </GrpHdr>\n${pmtInfXml}\n  </CstmrDrctDbtInitn>\n</Document>\n`;
 }
 
 function buildPaymentInfoXml({
@@ -471,6 +489,7 @@ function buildPaymentInfoXml({
   creditorName,
   localInstrument,
   transactions,
+  painFormat,
 }) {
   const ctrlSum = formatAmount(sumAmounts(transactions));
   const pmtInfId = requireMaxLength(
@@ -481,7 +500,7 @@ function buildPaymentInfoXml({
   const txXml = transactions
     .map((tx) => {
       const dbtrAgt = tx.debtorBic
-        ? `        <DbtrAgt>\n          <FinInstnId>\n${tx.debtorBic === "NOTPROVIDED" ? "            <Othr><Id>NOTPROVIDED</Id></Othr>" : `            <BIC>${xml(tx.debtorBic)}</BIC>`}\n          </FinInstnId>\n        </DbtrAgt>\n`
+        ? `        <DbtrAgt>\n          <FinInstnId>\n${buildFinancialInstitutionIdXml(tx.debtorBic, painFormat, 12)}\n          </FinInstnId>\n        </DbtrAgt>\n`
         : "";
 
       return `      <DrctDbtTxInf>\n        <PmtId>\n          <EndToEndId>${xml(tx.invoiceNumber)}</EndToEndId>\n        </PmtId>\n        <InstdAmt Ccy="EUR">${xml(formatAmount(tx.amount))}</InstdAmt>\n        <DrctDbtTx>\n          <MndtRltdInf>\n            <MndtId>${xml(tx.mandateId)}</MndtId>\n            <DtOfSgntr>${xml(tx.mandateDate)}</DtOfSgntr>\n          </MndtRltdInf>\n        </DrctDbtTx>\n${dbtrAgt}        <Dbtr>\n          <Nm>${xml(tx.debtorName)}</Nm>\n        </Dbtr>\n        <DbtrAcct>\n          <Id>\n            <IBAN>${xml(tx.debtorIban)}</IBAN>\n          </Id>\n        </DbtrAcct>\n        <RmtInf>\n          <Ustrd>${xml(tx.description || tx.invoiceNumber)}</Ustrd>\n        </RmtInf>\n      </DrctDbtTxInf>`;
@@ -489,10 +508,24 @@ function buildPaymentInfoXml({
     .join("\n");
 
   const creditorBicXml = state.creditor.bic
-    ? `      <CdtrAgt>\n        <FinInstnId>\n          <BIC>${xml(state.creditor.bic)}</BIC>\n        </FinInstnId>\n      </CdtrAgt>\n`
+    ? `      <CdtrAgt>\n        <FinInstnId>\n${buildFinancialInstitutionIdXml(state.creditor.bic, painFormat, 10)}\n        </FinInstnId>\n      </CdtrAgt>\n`
     : "";
 
   return `    <PmtInf>\n      <PmtInfId>${xml(pmtInfId)}</PmtInfId>\n      <PmtMtd>DD</PmtMtd>\n      <NbOfTxs>${xml(String(transactions.length))}</NbOfTxs>\n      <CtrlSum>${xml(ctrlSum)}</CtrlSum>\n      <PmtTpInf>\n        <SvcLvl>\n          <Cd>SEPA</Cd>\n        </SvcLvl>\n        <LclInstrm>\n          <Cd>${xml(localInstrument)}</Cd>\n        </LclInstrm>\n        <SeqTp>RCUR</SeqTp>\n      </PmtTpInf>\n      <ReqdColltnDt>${xml(collectionDate)}</ReqdColltnDt>\n      <Cdtr>\n        <Nm>${xml(creditorName)}</Nm>\n      </Cdtr>\n      <CdtrAcct>\n        <Id>\n          <IBAN>${xml(state.creditor.iban)}</IBAN>\n        </Id>\n      </CdtrAcct>\n${creditorBicXml}      <ChrgBr>SLEV</ChrgBr>\n      <CdtrSchmeId>\n        <Id>\n          <PrvtId>\n            <Othr>\n              <Id>${xml(state.creditor.schemeId)}</Id>\n              <SchmeNm>\n                <Prtry>SEPA</Prtry>\n              </SchmeNm>\n            </Othr>\n          </PrvtId>\n        </Id>\n      </CdtrSchmeId>\n${txXml}\n    </PmtInf>`;
+}
+
+function getPainFormat() {
+  const selectedFormat = els.painFormat?.value || DEFAULT_PAIN_FORMAT;
+  return PAIN_FORMATS[selectedFormat] || PAIN_FORMATS[DEFAULT_PAIN_FORMAT];
+}
+
+function buildFinancialInstitutionIdXml(bic, painFormat, indentation) {
+  const indent = " ".repeat(indentation);
+  if (bic === "NOTPROVIDED") {
+    return `${indent}<Othr><Id>NOTPROVIDED</Id></Othr>`;
+  }
+
+  return `${indent}<${painFormat.bicTag}>${xml(bic)}</${painFormat.bicTag}>`;
 }
 
 function deriveBicFromIban(iban) {

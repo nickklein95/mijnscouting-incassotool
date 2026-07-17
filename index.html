@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SEPA PAIN 008.001.02 Generator</title>
+  <title>SEPA PAIN Generator</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -36,6 +36,14 @@
           <label>
             Bestandsnaamvoorvoegsel
             <input id="fileNamePrefix" type="text" value="SEPA-DD">
+          </label>
+
+          <label>
+            PAIN SEPA incassoformaat
+            <select id="painFormat">
+              <option value="pain.008.001.08" selected>pain.008.001.08 (nieuw formaat)</option>
+              <option value="pain.008.001.02">pain.008.001.02 (oud formaat)</option>
+            </select>
           </label>
 
           <button id="generateBtn" disabled>XML genereren</button>

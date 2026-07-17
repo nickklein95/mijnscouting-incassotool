@@ -1,6 +1,6 @@
 # SOL-incasso
 
-Statische browser-app om een Excel-export met incassoregels om te zetten naar een SEPA `pain.008.001.02` XML-bestand.
+Statische browser-app om een Excel-export met incassoregels om te zetten naar een SEPA `pain.008.001.08` XML-bestand, met optie voor het oude `pain.008.001.02` formaat.
 
 Live versie:
 
@@ -16,10 +16,11 @@ Live versie:
 ## Gebruik
 
 1. Open `index.html` in een browser of deploy de map als statische site.
-2. Upload het Excel-bestand met incassoregels.
+2. Upload het Excel-bestand met incassoregels vanuit het rapport termijnen voor incasso.
 3. Controleer de preview en meldingen.
-4. Klik op `XML genereren`.
-5. Klik op `XML downloaden`.
+4. Kies eventueel het oude `pain.008.001.02` formaat.
+5. Klik op `XML genereren`.
+6. Klik op `XML downloaden`.
 
 ## Cloudflare Pages
 
