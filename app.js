@@ -297,6 +297,12 @@ function normaliseRow(row, rowNumber) {
     let debtorBicSource = "missing";
     if (debtorBicValue && debtorBicValue !== "NONE") {
       debtorBic = requireBicLength(debtorBicValue, REQUIRED_FIELDS.debtorBic);
+      requireBicMatchesIban(
+        debtorBic,
+        derivedBic,
+        debtorIban,
+        REQUIRED_FIELDS.debtorBic,
+      );
       debtorBicSource = "sheet";
     } else if (derivedBic) {
       debtorBic = requireBicLength(
@@ -490,10 +496,11 @@ function buildPaymentInfoXml({
 }
 
 function deriveBicFromIban(iban) {
-  if (!iban || iban.length < 8 || !iban.startsWith("NL")) {
+  const clean = cleanIban(iban);
+  if (!clean || clean.length < 8 || !clean.startsWith("NL")) {
     return "";
   }
-  const bankCode = iban.slice(4, 8).toUpperCase();
+  const bankCode = getIbanBankCode(clean);
   return BANK_TO_BIC[bankCode] || "";
 }
 
@@ -502,10 +509,47 @@ function normaliseCreditorBic(row) {
   const creditorBicValue = cleanText(
     row[REQUIRED_FIELDS.creditorBic],
   ).toUpperCase();
-  const creditorBic = creditorBicValue || deriveBicFromIban(creditorIban) || "";
-  return creditorBic
-    ? requireBicLength(creditorBic, REQUIRED_FIELDS.creditorBic)
+  const derivedBic = deriveBicFromIban(creditorIban);
+  if (creditorBicValue) {
+    const creditorBic = requireBicLength(
+      creditorBicValue,
+      REQUIRED_FIELDS.creditorBic,
+    );
+    requireBicMatchesIban(
+      creditorBic,
+      derivedBic,
+      creditorIban,
+      REQUIRED_FIELDS.creditorBic,
+    );
+    return creditorBic;
+  }
+
+  return derivedBic
+    ? requireBicLength(derivedBic, `${REQUIRED_FIELDS.creditorBic} (afgeleid)`)
     : "";
+}
+
+function requireBicMatchesIban(bic, expectedBic, iban, label) {
+  if (!expectedBic || bic === "NOTPROVIDED") {
+    return;
+  }
+
+  if (getBicInstitutionCode(bic) === getBicInstitutionCode(expectedBic)) {
+    return;
+  }
+
+  const bankCode = getIbanBankCode(iban);
+  throw new Error(
+    `"${label}" (${bic}) komt niet overeen met ${expectedBic}, afgeleid uit bankcode ${bankCode} in IBAN ${iban}`,
+  );
+}
+
+function getBicInstitutionCode(bic) {
+  return String(bic || "").toUpperCase().slice(0, 8);
+}
+
+function getIbanBankCode(iban) {
+  return cleanIban(iban).slice(4, 8).toUpperCase();
 }
 
 function normaliseMandateId(value, label) {
