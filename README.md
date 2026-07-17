@@ -16,7 +16,7 @@ Live versie:
 ## Gebruik
 
 1. Open `index.html` in een browser of deploy de map als statische site.
-2. Upload het Excel-bestand met incassoregels vanuit het rapport termijnen voor incasso.
+2. Upload het Excel-bestand met incassoregels vanuit het rapport "termijnen voor incasso".
 3. Controleer de preview en meldingen.
 4. Kies eventueel het oude `pain.008.001.02` formaat.
 5. Klik op `XML genereren`.
