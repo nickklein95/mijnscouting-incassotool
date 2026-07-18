@@ -45,6 +45,9 @@ const FIELD_LIMITS = {
   creditorSchemeId: 35,
 };
 
+const DISALLOWED_NAME_CHARS = /[^A-Za-z0-9/\-?:().,'+ ]/g;
+const COMBINING_MARKS = /[\u0300-\u036f]/g;
+
 const els = {
   inputCard: document.getElementById("inputCard"),
   previewCard: document.getElementById("previewCard"),
@@ -270,7 +273,7 @@ function normaliseRow(row, rowNumber) {
       FIELD_LIMITS.iban,
     );
     const debtorName = requireMaxLength(
-      cleanText(row[REQUIRED_FIELDS.debtorName]),
+      cleanName(row[REQUIRED_FIELDS.debtorName]),
       REQUIRED_FIELDS.debtorName,
       FIELD_LIMITS.name,
     );
@@ -346,7 +349,7 @@ function normaliseRow(row, rowNumber) {
       ),
       creditorBic: normaliseCreditorBic(row),
       creditorName: requireMaxLength(
-        requireText(
+        requireName(
           row[REQUIRED_FIELDS.creditorName],
           REQUIRED_FIELDS.creditorName,
         ),
@@ -689,12 +692,29 @@ function cleanText(value) {
     .trim();
 }
 
+function cleanName(value) {
+  return cleanText(value)
+    .normalize("NFD")
+    .replace(COMBINING_MARKS, "")
+    .replace(DISALLOWED_NAME_CHARS, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function cleanIban(value) {
   return cleanText(value).replace(/\s+/g, "").toUpperCase();
 }
 
 function requireText(value, label) {
   const text = cleanText(value);
+  if (!text) {
+    throw new Error(`"${label}" ontbreekt`);
+  }
+  return text;
+}
+
+function requireName(value, label) {
+  const text = cleanName(value);
   if (!text) {
     throw new Error(`"${label}" ontbreekt`);
   }
