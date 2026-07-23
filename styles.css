@@ -259,7 +259,8 @@ button:disabled {
 }
 
 .message.warn {
-  background: rgba(181, 101, 61, 0.12);
+  background: #806600;
+  color: var(--panel-strong);
 }
 
 .table-wrap {

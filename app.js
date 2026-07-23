@@ -1,5 +1,9 @@
 const BANK_TO_BIC = (typeof BIC_LIST !== "undefined" && BIC_LIST) || {};
 const DEFAULT_PAIN_FORMAT = "pain.008.001.08";
+const MIN_COLLECTION_DATE_OFFSET_DAYS = 14;
+const COLLECTION_DATE_WARNING =
+  "Incassodatum moet bij veel banken minimaal 2 week in de toekomst liggen.";
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const PAIN_FORMATS = {
   "pain.008.001.08": {
@@ -120,6 +124,10 @@ els.uploadTrigger.addEventListener("drop", async (event) => {
 });
 
 els.generateBtn.addEventListener("click", () => {
+  state.xml = "";
+  state.fileName = "";
+  resetDownload();
+
   try {
     const createdAt = new Date();
     const xml = buildXml(createdAt);
@@ -136,11 +144,19 @@ els.generateBtn.addEventListener("click", () => {
     els.downloadLink.hidden = false;
     els.downloadLink.textContent = "";
     els.downloadBtn.disabled = false;
+    const warnings = getExportWarnings(createdAt);
+    const successMessage = `XML succesvol gegenereerd.\nFormaat: ${painFormat.id}\nBestandsnaam: ${state.fileName}`;
     setStatus(
-      `XML succesvol gegenereerd.\nFormaat: ${painFormat.id}\nBestandsnaam: ${state.fileName}`,
-      "ok",
+      warnings.length
+        ? `${warnings.join("\n")}\n${successMessage}`
+        : successMessage,
+      warnings.length ? "warn" : "ok",
     );
   } catch (error) {
+    const dateStatus = getCollectionDateStatus(els.collectionDate.value);
+    if (dateStatus.kind === "error") {
+      els.generateBtn.disabled = true;
+    }
     setStatus(error.message || "Het genereren van XML is mislukt.", "error");
   }
 });
@@ -151,6 +167,20 @@ els.downloadBtn.addEventListener("click", () => {
   }
   els.downloadLink.click();
 });
+
+for (const eventName of ["input", "change"]) {
+  els.collectionDate.addEventListener(eventName, handleCollectionDateChange);
+}
+
+function handleCollectionDateChange() {
+  if (!state.transactions.length) {
+    return;
+  }
+  state.xml = "";
+  state.fileName = "";
+  resetDownload();
+  updateExportReadiness();
+}
 
 function hydrateFromRows(rows) {
   if (!rows.length) {
@@ -186,27 +216,10 @@ function hydrateFromRows(rows) {
     schemeId: state.transactions[0].creditorSchemeId,
   };
 
-  if (!els.collectionDate.value) {
-    els.collectionDate.value = state.transactions[0].dueDate;
-  }
+  els.collectionDate.value = state.transactions[0].dueDate;
 
   renderPreview();
-  els.generateBtn.disabled = false;
-  const warnings = [];
-  const bicFallbackCount = state.transactions.filter(
-    (tx) => tx.debtorBicSource === "fallback",
-  ).length;
-  if (bicFallbackCount > 0) {
-    warnings.push(
-      `${bicFallbackCount} debiteur-BIC-waarde(n) zijn niet gevonden en krijgen NOTPROVIDED.`,
-    );
-  }
-  setStatus(
-    warnings.length
-      ? warnings.join("\n")
-      : `${state.transactions.length} transacties geladen uit het werkboek.`,
-    warnings.length ? "warn" : "ok",
-  );
+  updateExportReadiness();
   syncPreviewHeight();
 }
 
@@ -442,9 +455,10 @@ function buildXml(createdAt = new Date()) {
     throw new Error("Laad een werkboek voordat je XML genereert.");
   }
 
-  const collectionDate = validateDateInput(
+  const collectionDate = validateCollectionDateInput(
     els.collectionDate.value,
     "Incassodatum",
+    createdAt,
   );
   const localInstrument = "CORE";
   const creditorName = requireMaxLength(
@@ -652,10 +666,76 @@ function parseFlexibleDate(value, label = "Datum") {
 }
 
 function validateDateInput(value, label) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) {
+  if (!parseDateInput(value)) {
     throw new Error(`${label} is verplicht.`);
   }
   return value;
+}
+
+function validateCollectionDateInput(value, label, referenceDate = new Date()) {
+  validateDateInput(value, label);
+  const status = getCollectionDateStatus(value, referenceDate);
+  if (status.kind === "error") {
+    throw new Error(status.message);
+  }
+  return value;
+}
+
+function getCollectionDateStatus(value, referenceDate = new Date()) {
+  const collectionDate = parseDateInput(value);
+  if (!collectionDate) {
+    return {
+      kind: "error",
+      message: "Incassodatum is verplicht.",
+    };
+  }
+
+  const today = startOfLocalDay(referenceDate);
+  const daysUntilCollection = Math.round(
+    (collectionDate.getTime() - today.getTime()) / MS_PER_DAY,
+  );
+
+  if (daysUntilCollection <= 0) {
+    return {
+      kind: "error",
+      message: "Incassodatum moet in de toekomst liggen.",
+    };
+  }
+
+  if (daysUntilCollection < MIN_COLLECTION_DATE_OFFSET_DAYS) {
+    return {
+      kind: "warn",
+      message: COLLECTION_DATE_WARNING,
+    };
+  }
+
+  return { kind: "ok" };
+}
+
+function parseDateInput(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function formatIsoDate(date) {
@@ -769,6 +849,59 @@ function setStatus(message, kind) {
   els.status.textContent = message;
   els.status.className = `message${kind === "error" ? " error" : kind === "warn" ? " warn" : ""}`;
   syncPreviewHeight();
+}
+
+function updateExportReadiness() {
+  if (!state.transactions.length) {
+    els.generateBtn.disabled = true;
+    return;
+  }
+
+  const dateStatus = getCollectionDateStatus(els.collectionDate.value);
+  if (dateStatus.kind === "error") {
+    els.generateBtn.disabled = true;
+    setStatus(dateStatus.message, "error");
+    return;
+  }
+
+  els.generateBtn.disabled = false;
+  const warnings = getExportWarnings();
+
+  setStatus(
+    warnings.length
+      ? warnings.join("\n")
+      : `${state.transactions.length} transacties geladen uit het werkboek.`,
+    warnings.length ? "warn" : "ok",
+  );
+}
+
+function getWorkbookWarnings() {
+  const warnings = [];
+  const bicFallbackCount = state.transactions.filter(
+    (tx) => tx.debtorBicSource === "fallback",
+  ).length;
+
+  if (bicFallbackCount > 0) {
+    warnings.push(
+      `${bicFallbackCount} debiteur-BIC-waarde(n) zijn niet gevonden en krijgen NOTPROVIDED.`,
+    );
+  }
+
+  return warnings;
+}
+
+function getExportWarnings(referenceDate = new Date()) {
+  const warnings = getWorkbookWarnings();
+  const dateStatus = getCollectionDateStatus(
+    els.collectionDate.value,
+    referenceDate,
+  );
+
+  if (dateStatus.kind === "warn") {
+    warnings.unshift(dateStatus.message);
+  }
+
+  return warnings;
 }
 
 function setSelectedFileName(name) {
